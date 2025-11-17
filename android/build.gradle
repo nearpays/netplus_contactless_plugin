@@ -1,0 +1,85 @@
+group = "com.nearpays.netplus.netplus_contactless"
+version = "1.0-SNAPSHOT"
+
+buildscript {
+    ext.kotlin_version = "2.1.10"
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.12.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+    }
+}
+
+//allprojects {
+//    repositories {
+//        google()
+//        mavenCentral()
+//    }
+//}
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+
+android {
+    namespace = "com.nearpays.netplus.netplus_contactless"
+
+    compileSdk = 36
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+        test.java.srcDirs += "src/test/kotlin"
+    }
+
+    defaultConfig {
+        minSdk = 28
+    }
+
+    dependencies {
+        testImplementation("org.jetbrains.kotlin:kotlin-test")
+        testImplementation("org.mockito:mockito-core:5.0.0")
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+
+            testLogging {
+               events "passed", "skipped", "failed", "standardOut", "standardError"
+               outputs.upToDateWhen {false}
+               showStandardStreams = true
+            }
+        }
+    }
+}
+dependencies {
+    implementation "com.github.netplusTeam:netplus-epms:1.0.23"
+    implementation "com.github.netplusTeam:NetposNibssClient:1.0.15"
+
+    implementation ("com.github.netplusTeam:contactless-sdk:1.1.27"){
+        exclude group: 'org.slf4j', module: 'slf4j-android'
+    }
+
+    implementation "com.dspread.library:dspread_pos_sdk:5.2.2"
+    implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.29"
+
+    implementation 'com.pixplicity.easyprefs:EasyPrefs:1.10.0'
+
+    implementation "com.github.D-Soft-Tech:DPrefs:1.0.5"
+
+    implementation 'com.squareup.retrofit2:converter-gson:3.0.0'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
+    implementation 'androidx.activity:activity-ktx:1.10.1'
+}
