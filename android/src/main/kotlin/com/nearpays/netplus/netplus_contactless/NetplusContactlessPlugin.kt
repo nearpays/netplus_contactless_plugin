@@ -2,15 +2,20 @@ package com.nearpays.netplus.netplus_contactless
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.location.LocationManager
 import android.nfc.NfcAdapter
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.registerForActivityResult
+import androidx.core.content.ContextCompat.getSystemService
 import com.danbamitale.epmslib.entities.CardData
 import com.danbamitale.epmslib.entities.KeyHolder
 import com.danbamitale.epmslib.entities.clearPinKey
@@ -45,6 +50,7 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
     private var activityPluginBinding: ActivityPluginBinding? = null
 
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var enableBtLauncher: ActivityResultLauncher<Intent>
 
     private val tag = "NetPlusContactlessFlutterPlugin"
     private val channelName = "netplus_contactless"
@@ -98,7 +104,7 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
-            Log.d("NetPlusPlugin","RESULT CALLED HERE $data")
+            Log.d("NetPlusPlugin", "RESULT CALLED HERE $data")
             if (result.resultCode == ContactlessReaderResult.RESULT_OK) {
                 data?.let { i ->
                     val cardReadData = i.getStringExtra("data")
@@ -125,6 +131,13 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
                         )
                     }
                 }
+            }
+        }
+        enableBtLauncher = componentActivity.registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                Log.d("NetPlusPlugin", "Bluetooth Enabled")
             }
         }
     }
@@ -239,6 +252,22 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
         if (key.isNullOrEmpty() || keyHolder.isNullOrEmpty() || amountToPay == null) {
             result.error(tag, "Invalid parameters", null)
             return
+        }
+        if (kitOption == "false") {
+            if (!isBluetoothEnabled(activity!!)) {
+                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                enableBtLauncher.launch(enableBtIntent)
+//                result.error(tag, "Please enable Bluetooth to use external NFC reader", null)
+//                return
+            }
+            if (!isLocationServiceEnabled(activity!!)) {
+                result.error(
+                    tag, "Please enable Location Service to use external NFC reader", mapOf(
+                        "location" to false
+                    )
+                )
+                return
+            }
         }
         val savedKeyHolder = gson.fromJson(keyHolder, KeyHolder::class.java)
         savedKeyHolder?.run {
@@ -376,6 +405,28 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
             "current" -> IsoAccountType.CURRENT
             "credit" -> IsoAccountType.CREDIT
             else -> IsoAccountType.DEFAULT_UNSPECIFIED
+        }
+    }
+
+    fun isBluetoothEnabled(context: Context): Boolean {
+        val bluetoothManager = getSystemService(context, BluetoothManager::class.java)
+        val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
+        if (bluetoothAdapter != null) {
+            return bluetoothAdapter.isEnabled
+        }
+        return false
+    }
+
+    fun isLocationServiceEnabled(context: Context): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        return try {
+            // Check if GPS provider is enabled
+            val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            isGpsEnabled
+        } catch (e: Exception) {
+            // Handle security exceptions or other issues if necessary
+            false
         }
     }
 
