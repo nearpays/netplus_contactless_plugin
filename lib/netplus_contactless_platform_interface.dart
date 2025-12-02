@@ -25,9 +25,12 @@ abstract class NetplusContactlessPlatform extends PlatformInterface {
   }
 
   Future<bool> hasNFC() {
-    throw UnimplementedError('isEnrolled() has not been implemented.');
+    throw UnimplementedError('hasNFC() has not been implemented.');
   }
 
+  Future<bool> isGPSEnabled() {
+    throw UnimplementedError('isGPSEnabled() has not been implemented.');
+  }
   Future<dynamic> configureTerminal({
     required String businessName,
     required String partnerName,

@@ -8,6 +8,10 @@ class NetplusContactless {
     return _platform.hasNFC();
   }
 
+  Future<bool> isGPSEnabled() {
+    return _platform.isGPSEnabled();
+  }
+
   Future<dynamic> configureTerminal({
     required String businessName,
     required String partnerName,

@@ -25,6 +25,20 @@ class MethodChannelNetplusContactless extends NetplusContactlessPlatform {
   }
 
   @override
+  Future<bool> isGPSEnabled() async {
+    bool res;
+    try {
+      res = await methodChannel.invokeMethod('isGPSEnabled');
+    } catch (e) {
+      log('Plugin: isGPSEnabled error', error: e);
+      res = false;
+      rethrow;
+    }
+    return res;
+  }
+
+
+  @override
   Future<dynamic> configureTerminal({
     required String businessName,
     required String partnerName,

@@ -1,5 +1,6 @@
 package com.nearpays.netplus.netplus_contactless
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
@@ -7,15 +8,16 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.nfc.NfcAdapter
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.registerForActivityResult
-import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.content.ContextCompat
 import com.danbamitale.epmslib.entities.CardData
 import com.danbamitale.epmslib.entities.KeyHolder
 import com.danbamitale.epmslib.entities.clearPinKey
@@ -51,6 +53,9 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
 
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var enableBtLauncher: ActivityResultLauncher<Intent>
+    private lateinit var permissionsLauncher: ActivityResultLauncher<Array<String>>
+    private var pendingCall: MethodCall? = null
+    private var pendingResult: Result? = null
 
     private val tag = "NetPlusContactlessFlutterPlugin"
     private val channelName = "netplus_contactless"
@@ -67,7 +72,7 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        if (call.method != "configureTerminal") {
+        if (!(call.method == "configureTerminal" || call.method == "hasNFC" || call.method == "isGPSEnabled")) {
             if (userData == null) {
                 result.error(tag, "Terminal not Configured", null)
                 return
@@ -75,6 +80,7 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
         }
         when (call.method) {
             "hasNFC" -> this.hasNFC(result)
+            "isGPSEnabled" -> this.isGPSEnabled(result)
             "configureTerminal" -> this.configureTerminal(call, result)
             "launchContactless" -> this.launchContactless(call, result)
             "makePayment" -> this.makePayment(call, result)
@@ -140,6 +146,26 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
                 Log.d("NetPlusPlugin", "Bluetooth Enabled")
             }
         }
+
+        permissionsLauncher = componentActivity.registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val allGranted = permissions.entries.all { it.value }
+            if (allGranted) {
+                pendingCall?.let { call ->
+                    pendingResult?.let { res ->
+                        if (call.method == "launchContactless") {
+                            launchContactless(call, res)
+                        }
+                    }
+                }
+            } else {
+                pendingResult?.error(tag, "Permissions not granted", null)
+            }
+            println("done")
+            pendingCall = null
+            pendingResult = null
+        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -163,6 +189,10 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
     private fun hasNFC(result: Result) {
         val nfcAvailable = NfcAdapter.getDefaultAdapter(activity!!) != null
         result.success(nfcAvailable)
+    }
+
+    private fun isGPSEnabled(result: Result){
+        result.success(isLocationServiceEnabled(activity!!))
     }
 
     //NetPlusContactless SDK
@@ -253,13 +283,10 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
             result.error(tag, "Invalid parameters", null)
             return
         }
+
+        if (!checkAndRequestPermissions(call, result)) return
+
         if (kitOption == "false") {
-            if (!isBluetoothEnabled(activity!!)) {
-                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                enableBtLauncher.launch(enableBtIntent)
-//                result.error(tag, "Please enable Bluetooth to use external NFC reader", null)
-//                return
-            }
             if (!isLocationServiceEnabled(activity!!)) {
                 result.error(
                     tag, "Please enable Location Service to use external NFC reader", mapOf(
@@ -267,6 +294,13 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
                     )
                 )
                 return
+            }
+
+            if (!isBluetoothEnabled(activity!!)) {
+                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                enableBtLauncher.launch(enableBtIntent)
+//                result.error(tag, "Please enable Bluetooth to use external NFC reader", null)
+//                return
             }
         }
         val savedKeyHolder = gson.fromJson(keyHolder, KeyHolder::class.java)
@@ -409,7 +443,7 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
     }
 
     fun isBluetoothEnabled(context: Context): Boolean {
-        val bluetoothManager = getSystemService(context, BluetoothManager::class.java)
+        val bluetoothManager = ContextCompat.getSystemService(context, BluetoothManager::class.java)
         val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
         if (bluetoothAdapter != null) {
             return bluetoothAdapter.isEnabled
@@ -517,5 +551,28 @@ class NetplusContactlessPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
                 "H9" to "",
             )
         return responseMessages.getOrDefault(code, "")
+    }
+
+    private fun checkAndRequestPermissions(call: MethodCall, result: Result): Boolean {
+        val kitOption: String? = call.argument<String?>("nfcKitOption")
+        if (kitOption != "false") return true
+
+        val requiredPermissions = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            requiredPermissions.add(Manifest.permission.BLUETOOTH_SCAN)
+            requiredPermissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+
+        val missingPermissions = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(activity!!, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isNotEmpty()) {
+            pendingCall = call
+            pendingResult = result
+            permissionsLauncher.launch(missingPermissions.toTypedArray())
+            return false
+        }
+        return true
     }
 }
