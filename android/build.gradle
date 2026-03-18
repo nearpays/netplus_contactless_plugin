@@ -30,12 +30,12 @@ android {
     compileSdk = 36
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11
+        jvmTarget = JavaVersion.VERSION_17
     }
 
     sourceSets {
@@ -65,15 +65,15 @@ android {
     }
 }
 dependencies {
-    implementation "com.github.netplusTeam:netplus-epms:1.0.23"
-    implementation "com.github.netplusTeam:NetposNibssClient:1.0.15"
+    implementation "com.github.netplusTeam:netplus-epms:1.0.28"
+    implementation "com.github.netplusTeam:NetposNibssClient:1.0.23"
 
     implementation ("com.github.netplusTeam:contactless-sdk:1.1.31"){
         exclude group: 'org.slf4j', module: 'slf4j-android'
     }
 
-    implementation "com.dspread.library:dspread_pos_sdk:5.2.2"
     implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.31"
+    implementation 'com.github.netplusTeam:Dspread:1.0.1'
 
     implementation 'com.pixplicity.easyprefs:EasyPrefs:1.10.0'
 
