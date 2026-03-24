@@ -57,9 +57,9 @@ android {
             useJUnitPlatform()
 
             testLogging {
-               events "passed", "skipped", "failed", "standardOut", "standardError"
-               outputs.upToDateWhen {false}
-               showStandardStreams = true
+                events "passed", "skipped", "failed", "standardOut", "standardError"
+                outputs.upToDateWhen { false }
+                showStandardStreams = true
             }
         }
     }
@@ -68,12 +68,16 @@ dependencies {
     implementation "com.github.netplusTeam:netplus-epms:1.0.28"
     implementation "com.github.netplusTeam:NetposNibssClient:1.0.23"
 
-    implementation ("com.github.netplusTeam:contactless-sdk:1.1.31"){
+    implementation("com.github.netplusTeam:contactless-sdk:1.1.31") {
         exclude group: 'org.slf4j', module: 'slf4j-android'
     }
 
     implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.31"
-    implementation 'com.github.netplusTeam:Dspread:1.0.1'
+    implementation('com.github.netplusTeam:Dspread:1.0.1') {
+        if (project.rootProject.findProperty('excludeBcprov') == 'true') {
+            exclude group: 'org.bouncycastle', module: 'bcprov-jdk15to18'
+        }
+    }
 
     implementation 'com.pixplicity.easyprefs:EasyPrefs:1.10.0'
 
