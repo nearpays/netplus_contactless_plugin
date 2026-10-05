@@ -44,7 +44,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 28
+        minSdk = 33
     }
 
     dependencies {
@@ -68,16 +68,16 @@ dependencies {
     implementation "com.github.netplusTeam:netplus-epms:1.0.28"
     implementation "com.github.netplusTeam:NetposNibssClient:1.0.23"
 
-    implementation("com.github.netplusTeam:contactless-sdk:1.1.31") {
+    implementation("com.github.netplusTeam:contactless-sdk:2.0.2") {
         exclude group: 'org.slf4j', module: 'slf4j-android'
     }
 
-    implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.31"
-    implementation('com.github.netplusTeam:Dspread:1.0.1') {
-        if (project.rootProject.findProperty('excludeBcprov') == 'true') {
-            exclude group: 'org.bouncycastle', module: 'bcprov-jdk15to18'
-        }
-    }
+    implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.32"
+//    implementation('com.github.netplusTeam:Dspread:1.0.1') {
+//        if (project.rootProject.findProperty('excludeBcprov') == 'true') {
+//            exclude group: 'org.bouncycastle', module: 'bcprov-jdk15to18'
+//        }
+//    }
 
     implementation 'com.pixplicity.easyprefs:EasyPrefs:1.10.0'
 
@@ -87,3 +87,10 @@ dependencies {
     implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
     implementation 'androidx.activity:activity-ktx:1.13.0'
 }
+//configurations.configureEach {
+//    if (project.rootProject.findProperty('excludeBcprov') == 'true') {
+//        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15to18'
+//        // Sometimes it's under a different artifact name, cover your bases:
+//        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
+//    }
+//}
